@@ -9,7 +9,9 @@ const todos = [{
     _id: new ObjectID()
 }, {
     text: 'Second test todo',
-    _id: new ObjectID()
+    _id: new ObjectID(),
+    completed: true,
+    completedAt: 333
 }]
 
 beforeEach((done) => {
@@ -132,3 +134,57 @@ describe('DELETE /todos/:id', () => {
             .end(done);
     });
 });
+
+describe('PATCH /todos/:id', () => {
+    it('should update the todo', (done) => {
+        request(app)
+            .patch(`/todos/${todos[0]._id.toHexString()}`)
+            .send({
+                text: "Patch test",
+                completed: true
+            }).expect(200)
+            .expect((res) => {
+                expect(res.body.todo.text).toBe('Patch test');
+                expect(res.body.todo.completed).toBe(true);
+                expect(typeof res.body.todo.completedAt).toBe('number');
+            })
+            .end((err,res) => {
+                if (err) {
+                    return done(err);
+                }
+                Todo.findById(todos[0]._id.toHexString())
+                    .then((todo) => {
+                        expect(todo.text).toBe('Patch test');
+                        expect(todo.completed).toBe(true);
+                        expect(typeof todo.completedAt).toBe('number');
+                        done();
+                    }).catch((e) => done(e));
+            });
+    });
+
+    it('should clear completedAt when todo is not completed', (done) => {
+        request(app)
+            .patch(`/todos/${todos[1]._id.toHexString()}`)
+            .send({
+                text: "Patch test 2",
+                completed: false
+            }).expect(200)
+            .expect((res) => {
+                expect(res.body.todo.text).toBe('Patch test 2');
+                expect(res.body.todo.completed).toBe(false);
+                expect(res.body.todo.completedAt).toBe(null);
+            })
+            .end((err,res) => {
+                if (err) {
+                    return done(err);
+                }
+                Todo.findById(todos[1]._id.toHexString())
+                    .then((todo) => {
+                        expect(todo.text).toBe('Patch test 2');
+                        expect(todo.completed).toBe(false);
+                        expect(todo.completedAt).toBe(null);
+                        done();
+                    }).catch((e) => done(e));
+            });
+    })
+})
